@@ -126,7 +126,7 @@ global $connect;
   $past = intval($all/$kol);
   $start = $page*$kol-$kol;
 
-  $sql = "SELECT * FROM pks_tickets, pks_subject, pks_player WHERE pks_player.pid=pks_tickets.user_id AND pks_tickets.subject=pks_subject.sid AND ".$where." ".$order_by." LIMIT ".$start.",".$kol."";
+  $sql = "SELECT * FROM pks_tickets, pks_subject, pks_player WHERE pks_tickets.parent_id=0 AND pks_player.pid=pks_tickets.user_id AND pks_tickets.subject=pks_subject.sid AND ".$where." ".$order_by." LIMIT ".$start.",".$kol."";
   $query = mysqli_query($connect,$sql);
 
   //echo $sql;
@@ -138,6 +138,28 @@ global $connect;
   <!---td align='center'><b>Кому</b></td--->
   <td align='center'><b>Суть поручения</b></td> <td align='center'><b>Комментарий</b></td> <td align='center'></td></tr>
   ";
+
+
+
+  /* Собрали всех работников в один список */
+  
+  $u_from.= "<select size='1' name='p[from]' class='form-control' style='width:100%;'>";
+  $queryu = mysqli_query($connect, "SELECT * FROM pks_player WHERE 1=1 ORDER BY pfio");
+  while($rowu = mysqli_fetch_assoc($queryu))
+  {
+    if ($rowu['pid']==$Player['pid'])
+    {
+      $my_u_from = "<option value='".$rowu['pid']."' selected style='background-color: #E2FFD9;'>".$rowu['pfio']." [".$rowu['pdolzh']."]</option>";
+    }
+    else
+    {
+      $no_u_from.= "<option value='".$rowu['pid']."'>".$rowu['pfio']." [".$rowu['pdolzh']."]</option>";
+    }
+  }
+  $u_from.= $my_u_from.$no_u_from."</select>";
+  /* ***** */
+
+
   while($row = mysqli_fetch_assoc($query))
   {
     if ($bg == "#F9F9F9") $bg = "#FFFFFF"; else $bg = "#F9F9F9";
@@ -157,7 +179,7 @@ global $connect;
       $st = date("d.m.Y [H:i]", strtotime($row['date_create']));
       $time = getTime($row['date_create'], $row['last_update']);
       $prioritet = "<img src='images/r/50.png' width='25'><br><small><nobr>".$time."</nobr></small>";
-      $bg = "#D7FDF5";
+      $bg = "#87CEEB";
     }
 
     if ($row['progress']==99)
@@ -166,7 +188,7 @@ global $connect;
       $st = date("d.m.Y [H:i]", strtotime($row['date_create']));
       $time = getTime($row['date_create'], $row['last_update']);
       $prioritet = "<img src='images/r/99.png' width='25'><br><small><nobr>".$time."</nobr></small>";
-      $bg = "#EBF9E6";
+      $bg = "#FFE4B5";
     }
 
     if ($row['progress']==0)
@@ -180,7 +202,8 @@ global $connect;
     $panel = "";
     $div = "";
     if ($row['worker_id']==$Player['pid'])
-    {      $div = "
+    {      
+      $div = "
       <div id=\"YesDiv".$row['id']."\" style=\"display:none; margin:0 auto; left:65%; position: absolute;  background: #ffffff; border:solid #C1C1C1 5px; padding:10px;\">
        <center>
        <form acton=\"index.php?do=main\" method=\"post\">
@@ -198,9 +221,6 @@ global $connect;
        </center>
       </div>
       <a title=\"ВЫПОЛНЕНО\" href=\"#\" onclick=\"closeall('YesDiv".$row['id']."'); document.getElementById('YesDiv".$row['id']."').style.display='block'; return false;\"><img src='images/r/100.png' width='18'></a>
-
-
-
       
       ";
       $panel .= $div."&nbsp;";
@@ -218,16 +238,17 @@ global $connect;
        <input name=\"event\" value=\"stop\" type=\"hidden\">
 
       <p><a style='color:red' title=\"ВЫПОЛНЕНО\" href=\"index.php?do=record&t=".$row['id']."&event=stop\" >[== РЕЧЕВИК ==]</a></p>
-
        <input value=\"Остановить поручение\" type=\"submit\"><br><br>
        <a href=\"#\" onclick=\"closeall('stopDiv".$row['id']."');\"><small>[Отмена]</small></a> <br>
        </form>
        </center>
       </div><a title=\"ОСТАНОВИТЬ\" href=\"#\" onclick=\"closeall('stopDiv".$row['id']."'); document.getElementById('stopDiv".$row['id']."').style.display='block'; return false;\"><img src='images/r/99.png' width='18'></a>
       ";
+
       $panel .= $div."&nbsp;";
 
     }
+
 
     if ($row['worker_id']==$Player['pid'])
     {
@@ -240,18 +261,23 @@ global $connect;
        <input name=\"id\" value=\"".$row['id']."\" type=\"hidden\">
        <input name=\"event\" value=\"no\" type=\"hidden\">
 
-      <p><a style='color:red' title=\"ВЫПОЛНЕНО\" href=\"index.php?do=record&t=".$row['id']."&event=no\" >[== РЕЧЕВИК ==]</a></p>
-
-       <input value=\"Поручение не выполнено\" type=\"submit\"><br><br>
-
-
-
-
+      <p><a style='color:red' title=\"НЕ ВЫПОЛНЕНО\" href=\"index.php?do=record&t=".$row['id']."&event=no\" >[== РЕЧЕВИК ==]</a></p>
+      <input value=\"Поручение не выполнено\" type=\"submit\"><br><br>
        <a href=\"#\" onclick=\"closeall('noDiv".$row['id']."');\"><small>[Отмена]</small></a> <br>
        </form>
        </center>
       </div><a title=\"НЕ ВЫПОЛНЕНО\" href=\"#\" onclick=\"closeall('noDiv".$row['id']."'); document.getElementById('noDiv".$row['id']."').style.display='block'; return false;\"><img src='images/r/50.png' width='18'></a>
+
+
+      <div id=\"resendDiv".$row['id']."\" style=\"display:none; margin:0 auto; left:65%; position: absolute;  background: #ffffff; border:solid #C1C1C1 5px; padding:10px;\">
+       <center>
+        <p><a style='color:red' title=\"ПЕРЕНАЗНАЧИТЬ\" href=\"index.php?do=record&t=".$row['id']."&event=resend\" >[== РЕЧЕВИК ==]</a></p>
+        <p><a href=\"#\" onclick=\"closeall('resendDiv".$row['id']."');\"><small>[Отмена]</small></a></p>
+       </center>
+      </div><a title=\"ПЕРЕНАЗНАЧИТЬ\" href=\"#\" onclick=\"closeall('resendDiv".$row['id']."'); document.getElementById('resendDiv".$row['id']."').style.display='block'; return false;\"><img src='images/r/10.png' width='18'></a>
+
       ";
+
       $panel .= $div."&nbsp;";
     }
 
@@ -264,7 +290,7 @@ global $connect;
         <td bgcolor='".$bg."' align='center'>".$row['id']."</td>
         <td bgcolor='".$bg."' align='center'>".$prioritet."</td>
         <td bgcolor='".$bg."'><b>От: ".$row['pfio']."</b><br>
-                              <span style='color:#C0C0C0'><b>Для:</b> ".$toPlayer['pfio']."</span>
+        <span style='color:#C0C0C0'><b>Для:</b> ".$toPlayer['pfio']."</span>
         </td>
         <td bgcolor='".$bg."'>".$row['user_comment']."<br><span style='color:#C0C0C0'><small>".$row['stitle']."</small></span></td>
         <td bgcolor='".$bg."'>".$row['worker_comment']."</td>
@@ -273,7 +299,113 @@ global $connect;
         </td>
     </tr>
     ";
-  }
+
+
+    /* ******************************************************************************************************
+
+    Решение влоб, рекурсию - придумали трусы, 
+    вручную собирем 1й уровень подчиненных поручений 
+    
+    Все согласно "ГOCT 5812-82", "ГOCT 5812-2014" 
+    (Кто дочитал до этого момента - улыбнитесь, так делать нельзя, но на хакатоне можно)
+   
+    */
+
+      $where2 = "(worker_id=".$Player['pid']." OR user_id=".$Player['pid'].") AND 1=1 ";
+      $sql2 = "SELECT * FROM pks_tickets, pks_subject, pks_player WHERE pks_tickets.parent_id=".$row['id']." AND pks_player.pid=pks_tickets.user_id AND pks_tickets.subject=pks_subject.sid AND ".$where2." ".$order_by." LIMIT ".$start.",".$kol."";
+
+      //echo $sql2; 
+      $query2 = mysqli_query($connect,$sql2);
+      while($row2 = mysqli_fetch_assoc($query2))
+      {
+
+        /* 
+        И тут закидываем все то что выше в первом цикле 
+        Да, да - Жесть - я заню!
+        
+        */
+
+                                                                          if ($bg == "#F9F9F9") $bg = "#FFFFFF"; else $bg = "#F9F9F9";
+
+                                                                          $toPlayer = GetPlayer("AND pid=".$row2['worker_id']);
+
+                                                                          if ($row2['progress']==100)
+                                                                          {      $ok = date("d.m.Y [H:i]", strtotime($row2['ok_date']));
+                                                                            $st = date("d.m.Y [H:i]", strtotime($row2['date_create']));
+                                                                            $time = getTime($row2['date_create'], $row2['ok_date']);      $prioritet = "<img src='images/r/100.png' width='25'><br><small><nobr>".$time."</nobr></small>";
+                                                                            $bg = "#EAFFEA";
+                                                                          }
+
+                                                                          if ($row2['progress']==50)
+                                                                          {
+                                                                            $ok = date("d.m.Y [H:i]", strtotime($row2['last_update']));
+                                                                            $st = date("d.m.Y [H:i]", strtotime($row2['date_create']));
+                                                                            $time = getTime($row2['date_create'], $row2['last_update']);
+                                                                            $prioritet = "<img src='images/r/50.png' width='25'><br><small><nobr>".$time."</nobr></small>";
+                                                                            $bg = "#87CEEB";
+                                                                          }
+
+                                                                          if ($row2['progress']==99)
+                                                                          {
+                                                                            $ok = date("d.m.Y [H:i]", strtotime($row2['last_update']));
+                                                                            $st = date("d.m.Y [H:i]", strtotime($row2['date_create']));
+                                                                            $time = getTime($row2['date_create'], $row2['last_update']);
+                                                                            $prioritet = "<img src='images/r/99.png' width='25'><br><small><nobr>".$time."</nobr></small>";
+                                                                            $bg = "#FFE4B5";
+                                                                          }
+
+                                                                          if ($row2['progress']==0)
+                                                                          {
+                                                                            $ok = date("d.m.Y [H:i]", strtotime($row2['date_create']));
+                                                                            //$st = sTime($row['date_create']);
+                                                                            $prioritet = "<img src='images/r/10.png' width='25'><br><small><nobr><b>Н:</b>".$ok."</nobr><br></small>";
+                                                                            $bg = "#FFFFFF";
+                                                                          }
+
+                                                                          $panel = "";
+                                                                          $div = "";
+                                                                          
+
+                                                                          if ($row2['user_id']==$Player['pid'])
+                                                                          {
+                                                                            $div = "
+                                                                            <div id=\"stopDiv".$row2['id']."\" style=\"display:none; margin:0 auto; left:65%; position: absolute;  background: #ffffff; border:solid #C1C1C1 5px; padding:10px;\">
+                                                                             <center>
+                                                                              <p><a style='color:red' title=\"ВЫПОЛНЕНО\" href=\"index.php?do=record&t=".$row2['id']."&event=stop\" >[== РЕЧЕВИК ==]</a></p>
+                                                                              <p><a href=\"#\" onclick=\"closeall('stopDiv".$row2['id']."');\"><small>[Отмена]</small></a> </p>
+                                                                             </center>
+                                                                            </div><a title=\"ОСТАНОВИТЬ\" href=\"#\" onclick=\"closeall('stopDiv".$row2['id']."'); document.getElementById('stopDiv".$row2['id']."').style.display='block'; return false;\"><img src='images/r/99.png' width='18'></a>
+                                                                            ";
+
+                                                                            $panel .= $div."&nbsp;";
+
+                                                                          }
+                                                                          if ($row2['progress']!=0)
+                                                                          {      $panel = "";
+                                                                          }
+
+                                                                          $TABLE.= "
+                                                                          <tr>
+                                                                              <td bgcolor='".$bg."' align='center'>".$row2['id']."</td>
+                                                                              <td bgcolor='".$bg."' align='center'>".$prioritet."</td>
+                                                                              <td bgcolor='".$bg."'><b>От: ".$row2['pfio']."</b><br>
+                                                                                                    <span style='color:#C0C0C0'><b>Для:</b> ".$toPlayer['pfio']."</span>
+                                                                              </td>
+                                                                              <td bgcolor='".$bg."'>".$row2['user_comment']."<br><span style='color:#C0C0C0'><small>".$row2['stitle']."</small></span></td>
+                                                                              <td bgcolor='".$bg."'>".$row2['worker_comment']."</td>
+                                                                              <td bgcolor='".$bg."' align='center'>
+                                                                              <nobr>".$panel."</nobr>
+                                                                              </td>
+                                                                          </tr>
+                                                                          ";
+
+
+
+
+
+      }
+
+   }  
   $TABLE.= "</table><br>";
   $TABLE.= navigation($all,$kol,$page,"index.php?do=main",$total);
 

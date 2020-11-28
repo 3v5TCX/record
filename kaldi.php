@@ -35,6 +35,10 @@ $pid = intval($_GET['pid']); // Кто отправил поручение
 $t = intval($_GET['t']);
 $event = $_GET['event'];
 
+$text = $json['text']; // то что сказал
+$command = explode(" ", $text);
+
+
   if ($event=="yes")
   {
     $data = date("Y-m-d H:i:s",time());
@@ -65,11 +69,37 @@ $event = $_GET['event'];
     exit;
   }
 
+/* Решаем влоб (дублируем код) ! */
+
+  if ($event=="resend")
+  {
+
+	$PlayerTo = GetPlayer(" AND hotword LIKE '%".$command[0]."%'");
+	if (intval($PlayerTo['pid']) > 0) // получатель поручения в БД найден, записываем для него
+	{
+		$prior = 1;
+		$subject = 1;
+
+		$to = $PlayerTo['pid']; 
+		$date_create = date("Y-m-d H:i:s",time());
+		$sql = "INSERT INTO pks_tickets (`parent_id`, `prioritet`,       `user_id`,        `worker_id`,    `date_create`,      `subject`,           `user_comment`, `worker_comment`, `progress`, `last_update`, `ok_date`)
+		VALUES (".$t.", '".$prior."', '".$pid."', '".$to."', '".$date_create."', '".$subject."', '".$text."', NULL, '0', NULL, NULL)";
+	    
+		mysqli_query($connect, $sql);
+		echo $sql."Создано перепоручение для <u style='color:blue'>".$PlayerTo['pfio']."</u>: ".$text; // на возврат для вебморды, инфа о том, что у нас получилось
+		exit;
+	}
+	else 
+	{
+		echo "<font color=red>Исп???</font> ".$text; // на возврат для вебморды, инфа о том, что у нас получилось	
+		exit;	
+	}
+
+    
+
+  }
 
 
-
-$text = $json['text']; // то что сказал
-$command = explode(" ", $text);
 
 $PlayerTo = GetPlayer(" AND hotword LIKE '%".$command[0]."%'");
 if (intval($PlayerTo['pid']) > 0) // получатель поручения в БД найден, записываем для него
@@ -84,10 +114,12 @@ if (intval($PlayerTo['pid']) > 0) // получатель поручения в 
     
 	mysqli_query($connect, $sql);
 	echo "Создано поручение для <u style='color:blue'>".$PlayerTo['pfio']."</u>: ".$text; // на возврат для вебморды, инфа о том, что у нас получилось
+	exit;
 }
 else 
 {
 	echo "<font color=red>Исп???</font> ".$text; // на возврат для вебморды, инфа о том, что у нас получилось	
+	exit;	
 }
 
 
