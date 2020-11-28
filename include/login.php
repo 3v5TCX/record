@@ -28,8 +28,8 @@
                      <img src='images/help-desk-icon.png' width='150'><br>
                      <h1>Система обработки поручений</h1>
                       <br>".$MESS."<br>
-                     <input type='text' name='login' autocomplete='off' class='form-control' placeholder='Табельный номер' style='width:50%;'><br>
-                     <input type='password' name='passw' class='form-control' placeholder='Пароль' style='width:50%;'><br>
+                     <input type='text' name='login' autocomplete='off' class='form-control' placeholder='Табельный номер' style='width:50%;' value='123456'><br>
+                     <input type='password' name='passw' class='form-control' placeholder='Пароль' style='width:50%;'  value='123456'><br>
                      <br>
                      <input type='submit' value='Войти' class='btn-blue' style='width:50%; height:50px;'>
             </div>
