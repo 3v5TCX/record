@@ -9,6 +9,9 @@ ini_set('display_startup_errors', 1);
 
   include "config.php";
 
+
+  
+
   $do = fresh($_GET['do']);  if (empty($do)) $do = fresh($_POST['do']);
 
   $pid  = $_COOKIE['pid'];

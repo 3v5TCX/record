@@ -12,7 +12,6 @@ ini_set('display_startup_errors', 1);
 Самое интересне тут, форма для речевика
 
 */
-
 $t = intval($_GET['t']);
 $event = $_GET['event'];
 
